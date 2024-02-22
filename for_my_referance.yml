@@ -1,0 +1,54 @@
+steps:
+#First Clone from Google Cloud Source Repository  
+- name: 'gcr.io/cloud-builders/git'
+  args: ['clone','https://source.developers.google.com/p/${_PROJECT}/r/${_REPO_NAME}']
+
+#Pull the image 
+- name: 'gcr.io/cloud-builders/docker'
+  entrypoint: 'bash'
+  args: ['-c', 'docker pull gcr.io/${_PROJECT}/${_CONTAINERNAME}:${_VERSION} || exit 0']
+
+#Build image
+- name: 'gcr.io/cloud-builders/docker'
+  args: [
+            'build',
+            '-t', 'gcr.io/${_PROJECT}/${_CONTAINERNAME}:${_VERSION}',
+            '--cache-from', 'gcr.io/${_PROJECT}/${_CONTAINERNAME}:${_VERSION}',
+            './src/'
+        ]
+
+#Push the image  
+- name: 'gcr.io/cloud-builders/docker'
+  args: ['push','gcr.io/${_PROJECT}/${_CONTAINERNAME}:${_VERSION}']
+  timeout: 900s
+
+
+- name: gcr.io/cloud-builders/gcloud
+  args:
+    - '-c'
+    - >
+      gcloud compute ssh ${_GCE_VM} --tunnel-through-iap --zone
+      ${_ZONE} --project ${_PROJECT} -- 'cd /home/ubuntu/dcap/${_DIRECTORY}  && sh docker-run.sh'
+  entrypoint: /bin/sh
+
+
+substitutions:
+    #GCP Specific configuration. Please DON'T change anything
+    _PROJECT: bh-vision-389311
+    _ZONE: us-central1-a
+    _GCE_VM: dcap-dev-vm
+    _DIRECTORY: backend 
+    
+    #Repository Specific configuration. DevOps can change this settings
+    _DEPLOYMENTNAME: dcap-google-backend
+    _CONTAINERNAME: dcap-google-backend
+    _REPO_NAME: github_runml_dcap-google-backend
+    
+    # Developers ONLY change
+    _VERSION: dev
+    
+options:
+    substitution_option: 'ALLOW_LOOSE'
+    machineType: 'N1_HIGHCPU_8'
+
+timeout: 1200s
