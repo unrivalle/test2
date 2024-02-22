@@ -1,15 +1,17 @@
-# main.py
-from fastapi import FastAPI
+# [START cloudbuild_python_flask]
+import os
 
-# Create an instance of the FastAPI class
-app = FastAPI()
+from flask import Flask
 
-# Define a simple route
-@app.get("/")
-def read_root():
-    return {"message": "Hello, World!"}
+app = Flask(__name__)
 
-# Define another route
-@app.get("/items/{item_id}")
-def read_item(item_id: int, q: str = None):
-    return {"item_id": item_id, "q": q}
+
+@app.route("/")
+def hello_world():
+    name = os.environ.get("NAME", "World")
+    return f"Hello {name}!"
+
+
+if __name__ == "__main__":
+    app.run(debug=True, host="0.0.0.0", port=int(os.environ.get("PORT", 8080)))
+# [END cloudbuild_python_flask]
